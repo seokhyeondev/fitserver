@@ -25,7 +25,7 @@ from rest_framework.decorators import api_view
 @api_view(['GET'])
 def hotkeyword_list(request):
     if request.method == 'GET':
-        hotKeywords = HotKeyword.objects.all().order_by('-nowCount')
+        hotKeywords = HotKeyword.objects.all().order_by('-nowCount')[:10:1]
         hotKeywords_list = []
         for keyword in hotKeywords:
             hotKeywords_list.append(keyword.word)
@@ -38,15 +38,15 @@ def searchlog_list(request):
     if request.method == 'GET':
         searchlogs = UserSearchLog.objects.all()
         
-        email = request.GET.get('email', None)
-        if email is not None:
-            seachlogs = seachlogs.filter(email=email)
-        else:
-            return JsonResponse({'message': 'Email required'}, status=status.HTTP_404_NOT_FOUND)
-        
+        word = request.GET.get('word')
+        if word is not None:
+            if word:
+                searchlogs = searchlogs.filter(word__icontains=word)
+            else:
+                searchlogs = []
         searchlogs_list = []
         for searchlog in searchlogs:
-            searchlogs_list.append(seachlog.word)
+            searchlogs_list.append(searchlog.word)
         return JsonResponse({
             'result' : searchlogs_list
         }, json_dumps_params = {'ensure_ascii': True})
@@ -108,10 +108,54 @@ def feed_list(request):
         if isFilter is False:
             feeds = feeds.filter(isShow=True)
 
+        tag_search = request.GET.get('tags', None)
+        if tag_search is not None:
+            tempfeeds = []
+            for feed in feeds :
+                if tag_search in feed.user_outfit.hash_tag  :
+                    tempfeeds.append(feed)
+            feeds = tempfeeds
+
+        colors_search = request.GET.getlist('color', None)
+        tempfeeds = []
+        if colors_search:
+            feeds.filter(user_outfit__top__color__in=colors_search)
+            for feed in feeds :
+                if feed.user_outfit.top is not None:
+                    if feed.user_outfit.top.color in colors_search:
+                        tempfeeds.append(feed)
+                        continue
+                if feed.user_outfit.bottom is not None:
+                    if feed.user_outfit.bottom.color in colors_search:
+                        tempfeeds.append(feed)
+                        continue
+                if feed.user_outfit.outer is not None:
+                    if feed.user_outfit.outer.color in colors_search:
+                        tempfeeds.append(feed)
+                        continue
+                if feed.user_outfit.dress is not None:
+                    if feed.user_outfit.dress.color in colors_search:
+                        tempfeeds.append(feed)
+                        continue
+                if feed.user_outfit.shoes is not None:
+                    if feed.user_outfit.shoes.color in colors_search:
+                        tempfeeds.append(feed)
+                        continue
+            feeds = tempfeeds
+            
+        styletags = request.GET.getlist('styletag', None)
+        if styletags:
+            for feed in feeds:
+                for styletag in styletags:
+                    if feed.style_tag:
+                        if styletag in feed.style_tag:
+                            tempfeeds.append(feed)
+                            continue
+            feeds = tempfeeds           
+            
         feeds_serializer = FeedSerializer(feeds, many=True)
         return JsonResponse(feeds_serializer.data, safe=False)
-        # 'safe=False' for objects serialization
- 
+        # 'safe=False' for objects serialization 
     elif request.method == 'POST':
         feed_data = JSONParser().parse(request)
         feeds_serializer = FeedSerializer(data=feed_data)

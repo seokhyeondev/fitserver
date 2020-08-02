@@ -84,7 +84,7 @@ class FeedSerializer(serializers.ModelSerializer):
                     
         outer = None
         if 'outer' in outfit_data:
-            outer_data = outfit_data.pop('shoes')
+            outer_data = outfit_data.pop('outer')
             try:
                 outer = Garment.objects.get(uuid=outer_data["uuid"])
             except Garment.DoesNotExist:
