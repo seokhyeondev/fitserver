@@ -112,7 +112,7 @@ def feed_list(request):
         if tag_search is not None:
             tempfeeds = []
             for feed in feeds :
-                if tag_search in feed.user_outfit.hash_tag  :
+                if feed.user_outfit.hash_tag and tag_search in feed.user_outfit.hash_tag  :
                     tempfeeds.append(feed)
             feeds = tempfeeds
 
